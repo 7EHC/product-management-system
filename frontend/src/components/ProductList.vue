@@ -215,6 +215,7 @@ const saveProduct = async () => {
       })
 
       // Refresh product list
+      handleCategory(isFilteredCate.value)
       hideDialog()
       return
     }
@@ -229,6 +230,7 @@ const saveProduct = async () => {
     })
 
     // Refresh product list
+    handleCategory(isFilteredCate.value)
     hideDialog()
   } catch (error) {
     console.error('Save failed:', error)
