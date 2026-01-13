@@ -17,7 +17,7 @@ router.post('/api/products', async (req, res) => {
     } else if (SKU.length < 3) {
       errors.push('SKU must be at least 3 characters long');
     } else {
-      const existingSKU = await Product.findOne({ SKU });
+      const existingSKU = await Product.findOne({ SKU: { $regex: SKU, $options: 'i' } });
       if (existingSKU) {
         errors.push('SKU must not be duplicated');
       }
