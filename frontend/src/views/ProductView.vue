@@ -21,7 +21,7 @@ import {
       </div>
     </div>
   </nav>
-  <div class="p-10 shadow-sm">
+  <div class="p-10 shadow-sm max-w-[1920px] mx-auto w-full">
     <ProductList />
   </div>
 </template>

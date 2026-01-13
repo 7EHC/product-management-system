@@ -24,7 +24,7 @@ onMounted(async () => {
   }
 })
 
-const emit = defineEmits(['update:category'])
+const emit = defineEmits(['update:category', 'update:keyword', 'addProduct'])
 
 watch(selectedCategory, (newVal) => {
   if (!newVal) {
@@ -70,10 +70,10 @@ watch(selectedCategory, (newVal) => {
         <IconSearch class="self-center cursor-pointer text-gray-400" @click="$emit('update:keyword', searchKeyword)"/>
     </div>
     <div class="flex ml-auto">
-        <Button class="p-button-outlined p-button-rounded h-10 ml-2 text-green-300 cursor-pointer duration-300 flex items-center gap-1"
+        <button class="p-button-outlined p-button-rounded h-10 ml-2 text-green-300 cursor-pointer duration-300 flex items-center gap-1"
           @click="$emit('addProduct', true)">
           <IconSquarePlus /> New Product
-        </Button>
+        </button>
     </div>
     </div>
   </div>

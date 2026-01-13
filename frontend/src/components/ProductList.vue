@@ -178,6 +178,13 @@ watch(selectedCategory, (newVal) => {
   console.log('Selected category in edit dialog:', newVal)
 })
 
+const dupError = ref('')
+
+watch(productToEdit, (newVal) => {
+  console.log('edited val', newVal);
+  if (newVal) dupError.value = ''
+}, { deep: true })
+
 const saveProduct = async () => {
   console.log('prod to add', productToEdit.value)
   submitted.value = true
@@ -206,18 +213,25 @@ const saveProduct = async () => {
         stock: productToEdit.value.stock,
       }
 
-      await productService.createProduct(dataToSend)
+      const res = await productService.createProduct(dataToSend)
+      console.log('res', res);
+      
+      if (res.errors) {
+        dupError.value = res.errors[0]
+        return dupError.value
+      } else {
+        Swal.fire({
+          title: 'Success',
+          text: 'Product created successfully!',
+          icon: 'success',
+        })
+  
+        // Refresh product list
+        handleCategory(isFilteredCate.value)
+        hideDialog()
+        return
+      }
 
-      Swal.fire({
-        title: 'Success',
-        text: 'Product created successfully!',
-        icon: 'success',
-      })
-
-      // Refresh product list
-      handleCategory(isFilteredCate.value)
-      hideDialog()
-      return
     }
 
     // Call API to save product
@@ -293,18 +307,18 @@ const addProduct = () => {
     @update:keyword="handleKeyword"
     @addProduct="addProduct"
     class="pb-4"
-    />
-    <div class="card mx-auto radius-lg">
-      <div class="pb-2 cursor-pointer text-red-500" v-if="selectedProducts.length > 0">
-        <Button
-          v-if="selectedProducts.length > 0"
-          class="p-button-danger p-button-outlined h-10 cursor-pointer px-3 flex items-center gap-2"
-          @click="confirmDelete({ SKU: 'Selected Items', _id: selectedProducts.map((p) => p._id) })"
-        >
-          <IconTrashFilled size="18" />
-          <span class="text-sm">Delete Selected({{ selectedProducts.length }})</span>
-        </Button>
-      </div>
+  />
+  <div class="card mx-auto radius-lg">
+    <div class="pb-2 cursor-pointer text-red-500" v-if="selectedProducts.length > 0">
+      <button
+        v-if="selectedProducts.length > 0"
+        class="p-button-danger p-button-outlined h-10 cursor-pointer px-3 flex items-center gap-2"
+        @click="confirmDelete({ SKU: 'Selected Items', _id: selectedProducts.map((p) => p._id) })"
+      >
+        <IconTrashFilled size="18" />
+        <span class="text-sm">Delete Selected({{ selectedProducts.length }})</span>
+      </button>
+    </div>
     <DataTable
       v-model:selection="selectedProducts"
       :value="products"
@@ -329,7 +343,7 @@ const addProduct = () => {
       </template>
 
       <Column selectionMode="multiple" style="width: 3rem" :exportable="false" />
-      <Column field="SKU" header="Product Code (SKU)" style="width: 20%;" sortable />
+      <Column field="SKU" header="Product Code (SKU)" style="width: 20%" sortable />
       <Column field="name" header="Product Name" style="width: 25%" sortable />
       <Column field="category.name" header="Category" style="width: 20%" sortable />
       <Column field="price" header="Price (THB)" style="width: 15%" sortable>
@@ -343,22 +357,22 @@ const addProduct = () => {
       <Column header="Actions" style="width: 10%">
         <template #body="slotProps">
           <div class="flex gap-4">
-            <Button
+            <button
               :disabled="slotProps.data.stock === 0"
               class="cursor-pointer"
               @click="sellProduct(slotProps.data)"
             >
               <IconShoppingBagCheck v-if="slotProps.data.stock > 0" class="text-green-300" />
               <IconPackageOff class="text-black cursor-not-allowed" v-else />
-            </Button>
+            </button>
 
-            <Button class="cursor-pointer" @click="editProduct(slotProps.data)">
+            <button class="cursor-pointer" @click="editProduct(slotProps.data)">
               <IconEdit />
-            </Button>
+            </button>
 
-            <Button class="text-red-500 cursor-pointer" @click="confirmDelete(slotProps.data)">
+            <button class="text-red-500 cursor-pointer" @click="confirmDelete(slotProps.data)">
               <IconTrash />
-            </Button>
+            </button>
           </div>
         </template>
       </Column>
@@ -383,17 +397,24 @@ const addProduct = () => {
       </ColumnGroup> -->
     </DataTable>
   </div>
-   <div v-if="!isFilteredCate.includes('All') && products.length > 0">
-    <div class="w-full pt-2 border-t border-gray-300 flex flex-col sm:flex-row justify-end md:gap-6 pr-4">
-        <p>Total Products: <span class="text-yellow-500">{{ products.length }}</span></p>
-        <p>Total Stock Values: <span class="text-green-300">{{ totalPrices }}</span></p>
+  <div v-if="!isFilteredCate.includes('All') && products.length > 0">
+    <div
+      class="w-full pt-2 border-t border-gray-300 flex flex-col sm:flex-row justify-end md:gap-6 pr-4"
+    >
+      <p>
+        Total Products: <span class="text-yellow-500">{{ products.length }}</span>
+      </p>
+      <p>
+        Total Stock Values: <span class="text-green-300">{{ totalPrices }}</span>
+      </p>
     </div>
-    </div>
+  </div>
   <Dialog
     v-model:visible="editProductDialog"
     :style="{ width: '450px' }"
     header="Product Details"
     :modal="true"
+    :baseZIndex="1000"
   >
     <div class="flex flex-col gap-6">
       <div>
@@ -408,6 +429,9 @@ const addProduct = () => {
         <small v-if="submitted && !productToEdit.SKU" class="text-red-500">SKU is required.</small>
         <small v-else-if="submitted && productToEdit.SKU.length < 3" class="text-red-500"
           >SKU must be at least 3 characters long.</small
+        >
+        <small v-else-if="submitted && dupError" class="text-red-500"
+          >SKU is alerady exist.</small
         >
       </div>
       <div>
@@ -443,7 +467,7 @@ const addProduct = () => {
           <InputNumber
             id="price"
             v-model="productToEdit.price"
-            min="0"
+            :min="0"
             mode="currency"
             currency="THB"
             locale="en-US"
@@ -455,7 +479,7 @@ const addProduct = () => {
         </div>
         <div class="col-span-6">
           <label for="stock" class="block font-bold mb-3">Stock Quantity</label>
-          <InputNumber id="stock" min="0" v-model="productToEdit.stock" integeronly fluid />
+          <InputNumber id="stock" :min="0" v-model="productToEdit.stock" integeronly fluid />
           <small v-if="submitted && productToEdit.stock === 0" class="text-red-500"
             >Stock is required.</small
           >
@@ -465,19 +489,19 @@ const addProduct = () => {
 
     <template #footer>
       <div class="flex gap-2 justify-end">
-        <Button
+        <button
           @click="saveProduct(productToEdit)"
           class="cursor-pointer border-2 rounded-lg p-1.5 bg-green-300 text-black hover:bg-green-400 transition duration-500"
         >
           Save
-        </Button>
-        <Button
+        </button>
+        <button
           text
           @click="hideDialog"
           class="cursor-pointer border-2 rounded-lg p-1.5 bg-red-300 text-black hover:bg-red-400 transition duration-500"
         >
           Cancel
-        </Button>
+        </button>
       </div>
     </template>
   </Dialog>
